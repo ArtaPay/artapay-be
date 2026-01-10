@@ -133,6 +133,14 @@ function requireAmount(value: unknown, field: string): bigint {
   if (value === undefined || value === null) {
     throw new Error(`${field} is required`);
   }
+  if (
+    typeof value !== "string" &&
+    typeof value !== "number" &&
+    typeof value !== "bigint" &&
+    typeof value !== "boolean"
+  ) {
+    throw new Error(`${field} must be a positive integer string/number`);
+  }
   try {
     const bi = BigInt(value);
     if (bi <= 0n) throw new Error();
