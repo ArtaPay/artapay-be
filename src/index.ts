@@ -105,13 +105,20 @@ async function signPaymasterData(params: {
   tokenAddress: Address;
   validUntil: number;
   validAfter: number;
+  isActivation: boolean;
 }): Promise<Hex> {
-  const { payerAddress, tokenAddress, validUntil, validAfter } = params;
+  const { payerAddress, tokenAddress, validUntil, validAfter, isActivation } = params;
 
   const hash = keccak256(
     encodeAbiParameters(
-      parseAbiParameters("address, address, uint256, uint256"),
-      [payerAddress, tokenAddress, BigInt(validUntil), BigInt(validAfter)]
+      parseAbiParameters("address, address, uint256, uint256, bool"),
+      [
+        payerAddress,
+        tokenAddress,
+        BigInt(validUntil),
+        BigInt(validAfter),
+        isActivation,
+      ]
     )
   );
 
@@ -176,12 +183,13 @@ app.get("/signer", (_, res) => {
  *   payerAddress: "0x..." (EOA payer),
  *   tokenAddress: "0x...",
  *   validUntil: 1704067200,
- *   validAfter: 0
+ *   validAfter: 0,
+ *   isActivation: false
  * }
  */
 app.post("/sign", async (req, res) => {
   try {
-    const { payerAddress, tokenAddress, validUntil, validAfter } = req.body;
+    const { payerAddress, tokenAddress, validUntil, validAfter, isActivation } = req.body;
 
     if (!payerAddress || !tokenAddress) {
       return res.status(400).json({
@@ -198,6 +206,7 @@ app.post("/sign", async (req, res) => {
       tokenAddress: tokenAddress as Address,
       validUntil: validUntil || Math.floor(Date.now() / 1000) + 3600,
       validAfter: validAfter || 0,
+      isActivation: Boolean(isActivation),
     });
 
     console.log("   Signed!");
