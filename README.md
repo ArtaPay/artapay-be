@@ -1,7 +1,7 @@
 # ArtaPay Backend
 
 Backend service for ArtaPay dApp that signs Paymaster data and builds StableSwap
-calldata for gasless stablecoin transactions on Lisk Sepolia.
+calldata for gasless stablecoin transactions on Base Sepolia.
 
 ## Overview
 
@@ -95,7 +95,7 @@ Create a `.env` file in the root directory:
 PAYMASTER_SIGNER_PRIVATE_KEY=0x...
 
 # RPC endpoint for reading StableSwap (quotes/calldata)
-RPC_URL=https://rpc.sepolia-api.lisk.com
+RPC_URL=https://sepolia.base.org
 
 # StableSwap contract address (for quote/build)
 STABLE_SWAP_ADDRESS=0x...
@@ -133,28 +133,30 @@ npm run build
 
 ## Network Information
 
-### Lisk Sepolia Testnet
+### Base Sepolia Testnet
 
-- **Chain ID**: 4202
-- **RPC URL**: https://rpc.sepolia-api.lisk.com
-- **Block Explorer**: https://sepolia-blockscout.lisk.com
+- **Chain ID**: 84532
+- **RPC URL**: https://sepolia.base.org
+- **Block Explorer**: https://base-sepolia.blockscout.com
 - **EntryPoint v0.7**: `0x0000000071727De22E5E9d8BAf0edAc6f37da032`
 
 ## Supported Stablecoins
 
 | Symbol | Name               | Decimals | Region |
 | ------ | ------------------ | -------- | ------ |
-| USDC   | USD Coin           | 6        | US     |
-| USDT   | Tether USD         | 6        | US     |
-| IDRX   | Indonesia Rupiah   | 6        | ID     |
-| JPYC   | JPY Coin           | 8        | JP     |
-| EURC   | Euro Coin          | 6        | EU     |
-| MXNT   | Mexican Peso Token | 6        | MX     |
-| CNHT   | Chinese Yuan Token | 6        | CN     |
+| USDC   | USD Coin          | 6        | US     |
+| USDS   | Sky Dollar        | 6        | US     |
+| EURC   | Euro Coin         | 6        | EU     |
+| BRZ    | Brazilian Digital | 6        | BR     |
+| AUDD   | AUDD              | 6        | AU     |
+| CADC   | CAD Coin          | 6        | CA     |
+| ZCHF   | Frankencoin       | 6        | CH     |
+| TGBP   | Tokenised GBP     | 18       | GB     |
+| IDRX   | Indonesia Rupiah  | 6        | ID     |
 
 ## Contract Addresses
 
-### Lisk Sepolia (Testnet)
+### Base Sepolia (Testnet)
 
 ```
 EntryPoint:            0x0000000071727De22E5E9d8BAf0edAc6f37da032
