@@ -107,10 +107,6 @@ PORT=3001
 CORS_ORIGINS=http://localhost:5173
 ```
 
-## Testing
-
-No automated tests are included yet.
-
 ## Deployment
 
 ### Run Locally (Watch Mode)
@@ -160,10 +156,10 @@ npm run build
 
 ```
 EntryPoint:            0x0000000071727De22E5E9d8BAf0edAc6f37da032
-Paymaster:             <DEPLOYED_ADDRESS>
-StablecoinRegistry:    <DEPLOYED_ADDRESS>
-StableSwap:            <DEPLOYED_ADDRESS>
-PaymentProcessor:      <DEPLOYED_ADDRESS>
+Paymaster:             0x1b14BF9ab47069a77c70Fb0ac02Bcb08A9Ffe290
+StablecoinRegistry:    0x573f4D2b5e9E5157693a9Cc0008FcE4e7167c584
+StableSwap:            0x822e1dfb7bf410249b2bE39809A5Ae0cbfae612f
+PaymentProcessor:      0x4D053b241a91c4d8Cd86D0815802F69D34a0164B
 ```
 
 ## Security Considerations
