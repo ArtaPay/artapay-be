@@ -32,7 +32,9 @@ app.use(
 // =====================================================
 const PRIVATE_KEY = process.env.PAYMASTER_SIGNER_PRIVATE_KEY;
 const RPC_URL = process.env.RPC_URL;
+const RPC_URL_ETHERLINK = process.env.RPC_URL_ETHERLINK;
 const STABLE_SWAP_ADDRESS = process.env.STABLE_SWAP_ADDRESS as Address | undefined;
+const STABLE_SWAP_ADDRESS_ETHERLINK = process.env.STABLE_SWAP_ADDRESS_ETHERLINK as Address | undefined;
 
 if (!PRIVATE_KEY) {
   console.error("ERROR: PAYMASTER_SIGNER_PRIVATE_KEY not found in .env");
@@ -49,11 +51,71 @@ if (!STABLE_SWAP_ADDRESS) {
   process.exit(1);
 }
 
+if (!RPC_URL_ETHERLINK || !STABLE_SWAP_ADDRESS_ETHERLINK) {
+  console.warn("WARN: Etherlink is not configured (RPC_URL_ETHERLINK / STABLE_SWAP_ADDRESS_ETHERLINK missing).");
+}
+
 // Create signer account
 const signerAccount = privateKeyToAccount(PRIVATE_KEY as Hex);
-const publicClient = createPublicClient({
-  transport: http(RPC_URL),
-});
+
+type ChainKey = "base_sepolia" | "etherlink_shadownet";
+type ChainConfig = {
+  key: ChainKey;
+  name: string;
+  chainId: number;
+  rpcUrl?: string;
+  stableSwapAddress?: Address;
+};
+
+const CHAINS: Record<ChainKey, ChainConfig> = {
+  base_sepolia: {
+    key: "base_sepolia",
+    name: "Base Sepolia",
+    chainId: 84532,
+    rpcUrl: RPC_URL,
+    stableSwapAddress: STABLE_SWAP_ADDRESS,
+  },
+  etherlink_shadownet: {
+    key: "etherlink_shadownet",
+    name: "Etherlink Shadownet",
+    chainId: 127823,
+    rpcUrl: RPC_URL_ETHERLINK,
+    stableSwapAddress: STABLE_SWAP_ADDRESS_ETHERLINK,
+  },
+};
+
+function parseChainKey(input: unknown): ChainKey | undefined {
+  if (input === undefined || input === null || input === "") {
+    return undefined;
+  }
+  const raw = String(input).trim().toLowerCase();
+  if (raw === "base" || raw === "base_sepolia" || raw === "84532") return "base_sepolia";
+  if (raw === "etherlink" || raw === "etherlink_shadownet" || raw === "shadownet" || raw === "127823") {
+    return "etherlink_shadownet";
+  }
+  throw new Error("Unsupported chain. Use base|84532 or etherlink|127823.");
+}
+
+const DEFAULT_CHAIN: ChainKey = (() => {
+  if (!process.env.DEFAULT_CHAIN) return "etherlink_shadownet";
+  try {
+    return parseChainKey(process.env.DEFAULT_CHAIN) ?? "etherlink_shadownet";
+  } catch (error) {
+    console.warn(
+      `WARN: DEFAULT_CHAIN is invalid ("${process.env.DEFAULT_CHAIN}"). Falling back to etherlink_shadownet.`
+    );
+    return "etherlink_shadownet";
+  }
+})();
+
+const publicClients: Partial<Record<ChainKey, ReturnType<typeof createPublicClient>>> = {};
+for (const chain of Object.values(CHAINS)) {
+  if (chain.rpcUrl) {
+    publicClients[chain.key] = createPublicClient({
+      transport: http(chain.rpcUrl),
+    });
+  }
+}
 
 const STABLE_SWAP_ABI = [
   {
@@ -92,7 +154,10 @@ console.log("=====================================================");
 console.log("");
 console.log(`   Signer Address: ${signerAccount.address}`);
 console.log("   Make sure this address is added as authorized signer on Paymaster.");
-console.log(`   StableSwap: ${STABLE_SWAP_ADDRESS}`);
+console.log(`   Base StableSwap: ${STABLE_SWAP_ADDRESS}`);
+if (STABLE_SWAP_ADDRESS_ETHERLINK) {
+  console.log(`   Etherlink StableSwap: ${STABLE_SWAP_ADDRESS_ETHERLINK}`);
+}
 console.log("");
 
 /**
@@ -157,6 +222,34 @@ function requireAmount(value: unknown, field: string): bigint {
   }
 }
 
+function resolveChainKey(input: unknown): ChainKey {
+  const parsed = parseChainKey(input);
+  return parsed ?? DEFAULT_CHAIN;
+}
+
+function getChainContext(req: express.Request): {
+  chain: ChainConfig;
+  publicClient: ReturnType<typeof createPublicClient>;
+  stableSwapAddress: Address;
+} {
+  const chainKey = resolveChainKey(
+    req.query.chain ??
+      req.query.chainId ??
+      req.body?.chain ??
+      req.body?.chainId ??
+      req.headers["x-chain"]
+  );
+  const chain = CHAINS[chainKey];
+  if (!chain.rpcUrl || !chain.stableSwapAddress) {
+    throw new Error(`Chain not configured: ${chainKey}`);
+  }
+  const publicClient = publicClients[chainKey];
+  if (!publicClient) {
+    throw new Error(`Public client not initialized for: ${chainKey}`);
+  }
+  return { chain, publicClient, stableSwapAddress: chain.stableSwapAddress };
+}
+
 // =====================================================
 // ROUTES
 // =====================================================
@@ -166,6 +259,14 @@ app.get("/health", (_, res) => {
     status: "ok",
     signerAddress: signerAccount.address,
     message: "Backend ready. Private key loaded.",
+    defaultChain: DEFAULT_CHAIN,
+    chains: Object.values(CHAINS).map((chain) => ({
+      key: chain.key,
+      name: chain.name,
+      chainId: chain.chainId,
+      enabled: Boolean(chain.rpcUrl && chain.stableSwapAddress),
+      stableSwapAddress: chain.stableSwapAddress || null,
+    })),
   });
 });
 
@@ -230,15 +331,18 @@ app.get("/swap/quote", async (req, res) => {
     const tokenIn = requireAddress(req.query.tokenIn, "tokenIn");
     const tokenOut = requireAddress(req.query.tokenOut, "tokenOut");
     const amountIn = requireAmount(req.query.amountIn, "amountIn");
+    const { chain, publicClient, stableSwapAddress } = getChainContext(req);
 
     const [amountOut, fee, totalUserPays] = (await publicClient.readContract({
-      address: STABLE_SWAP_ADDRESS!,
+      address: stableSwapAddress,
       abi: STABLE_SWAP_ABI,
       functionName: "getSwapQuote",
       args: [tokenIn, tokenOut, amountIn],
     })) as readonly [bigint, bigint, bigint];
 
     res.json({
+      chain: chain.key,
+      chainId: chain.chainId,
       tokenIn,
       tokenOut,
       amountIn: amountIn.toString(),
@@ -266,6 +370,7 @@ app.post("/swap/build", async (req, res) => {
     const tokenOut = requireAddress(req.body?.tokenOut, "tokenOut");
     const amountIn = requireAmount(req.body?.amountIn, "amountIn");
     const minAmountOut = requireAmount(req.body?.minAmountOut, "minAmountOut");
+    const { chain, stableSwapAddress } = getChainContext(req);
 
     const data = encodeFunctionData({
       abi: STABLE_SWAP_ABI,
@@ -274,7 +379,9 @@ app.post("/swap/build", async (req, res) => {
     });
 
     res.json({
-      to: STABLE_SWAP_ADDRESS,
+      chain: chain.key,
+      chainId: chain.chainId,
+      to: stableSwapAddress,
       data,
       value: "0",
       amountIn: amountIn.toString(),

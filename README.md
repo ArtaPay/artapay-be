@@ -1,7 +1,7 @@
 # ArtaPay Backend
 
 Backend service for ArtaPay dApp that signs Paymaster data and builds StableSwap
-calldata for gasless stablecoin transactions on Base Sepolia.
+calldata for gasless stablecoin transactions on Base Sepolia and Etherlink Shadownet.
 
 ## Overview
 
@@ -94,11 +94,16 @@ Create a `.env` file in the root directory:
 # IMPORTANT: This must be a PRIVATE KEY, not an address
 PAYMASTER_SIGNER_PRIVATE_KEY=0x...
 
-# RPC endpoint for reading StableSwap (quotes/calldata)
+# RPC endpoints for reading StableSwap (quotes/calldata)
 RPC_URL=https://sepolia.base.org
+RPC_URL_ETHERLINK=https://node.shadownet.etherlink.com
 
-# StableSwap contract address (for quote/build)
+# Default chain for requests without explicit chain/chainId/header
+DEFAULT_CHAIN=etherlink
+
+# StableSwap contract addresses (for quote/build)
 STABLE_SWAP_ADDRESS=0x...
+STABLE_SWAP_ADDRESS_ETHERLINK=0x...
 
 # Server port
 PORT=3001
@@ -106,6 +111,16 @@ PORT=3001
 # Allowed CORS origins (comma-separated)
 CORS_ORIGINS=http://localhost:5173
 ```
+
+### Chain Selection
+
+For multichain requests, include one of the following:
+
+- Query or body: `chain=base` / `chain=etherlink`
+- Query or body: `chainId=84532` / `chainId=127823`
+- Header: `x-chain: base` or `x-chain: etherlink`
+
+If omitted, the backend defaults to `DEFAULT_CHAIN` (fallback: Etherlink Shadownet).
 
 ## Deployment
 
@@ -136,7 +151,16 @@ npm run build
 - **Block Explorer**: https://base-sepolia.blockscout.com
 - **EntryPoint v0.7**: `0x0000000071727De22E5E9d8BAf0edAc6f37da032`
 
+### Etherlink Shadownet Testnet
+
+- **Chain ID**: 127823
+- **RPC URL**: https://node.shadownet.etherlink.com
+- **Block Explorer**: https://shadownet.explorer.etherlink.com
+- **EntryPoint v0.7**: `0x0000000071727De22E5E9d8BAf0edAc6f37da032`
+
 ## Supported Stablecoins
+
+### Base Sepolia
 
 | Symbol | Name               | Decimals | Region |
 | ------ | ------------------ | -------- | ------ |
@@ -148,6 +172,14 @@ npm run build
 | CADC   | CAD Coin          | 6        | CA     |
 | ZCHF   | Frankencoin       | 6        | CH     |
 | TGBP   | Tokenised GBP     | 18       | GB     |
+| IDRX   | Indonesia Rupiah  | 6        | ID     |
+
+### Etherlink Shadownet
+
+| Symbol | Name              | Decimals | Region |
+| ------ | ----------------- | -------- | ------ |
+| USDC   | USD Coin          | 6        | US     |
+| USDT   | Tether USD        | 6        | US     |
 | IDRX   | Indonesia Rupiah  | 6        | ID     |
 
 ## Contract Addresses
@@ -173,6 +205,22 @@ Mock Tokens:
   ZCHF:  0xF27edF22FD76A044eA5B77E1958863cf9A356132
   tGBP:  0xb4db79424725256a6E6c268fc725979b24171857
   IDRX:  0x34976B6c7Aebe7808c7Cab34116461EB381Bc2F8
+```
+
+### Etherlink Shadownet (Testnet)
+
+EntryPoint:            0x0000000071727De22E5E9d8BAf0edAc6f37da032
+StablecoinRegistry:    0x6fe372ef0B695ec05575D541e0DA60bf18A3D0f0
+Paymaster:             0xFC7E8c60315e779b1109B252fcdBFB8f3524F9B6
+StableSwap:            0xB67b210dEe4C1A744c1d51f153b3B3caF5428F60
+PaymentProcessor:      0x5D4748951fB0AF37c57BcCb024B3EE29360148bc
+SimpleAccountFactory:  0xb7E56FbAeC1837c5693AAf35533cc94e35497d86
+QRISRegistry:          0xD17d8f2819C068A57f0F4674cF439d1eC96C56f5
+
+Mock Tokens:
+  USDC:  0x60E48d049EB0c75BF428B028Da947c66b68f5dd2
+  USDT:  0xcaF86109F34d74DE0e554FD5E652C412517374fb
+  IDRX:  0x8A272505426D4F129EE3493A837367B884653237
 ```
 
 ## Security Considerations
