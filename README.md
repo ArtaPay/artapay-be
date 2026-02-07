@@ -209,6 +209,7 @@ Mock Tokens:
 
 ### Etherlink Shadownet (Testnet)
 
+```
 EntryPoint:            0x0000000071727De22E5E9d8BAf0edAc6f37da032
 StablecoinRegistry:    0x6fe372ef0B695ec05575D541e0DA60bf18A3D0f0
 Paymaster:             0xFC7E8c60315e779b1109B252fcdBFB8f3524F9B6
